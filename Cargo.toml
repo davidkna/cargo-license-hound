@@ -1,15 +1,17 @@
 [package]
-name = "cargo-license-hound"
+name = "cargo-licenses-markdown"
 description = "Tool to help sniffing out licenses from all crate dependencies"
 license = "MIT"
 version = "0.1.0"
 authors = ["Magnus Hoff <maghoff@gmail.com>"]
+publish = false
 
 [dependencies]
 base64 = "0.7"
 cargo = "0.22"
 itertools = "0.7"
 lazy_static = "0.2"
+libflate = "0.1.12"
 regex = "0.2"
 reqwest = "0.8.1"
 serde = "1"

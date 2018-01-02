@@ -17,16 +17,15 @@ const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VE
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 enum Encoding {
-    #[serde(rename = "base64")]
-    Base64,
+    #[serde(rename = "base64")] Base64,
 }
 
 impl Encoding {
     fn decode(&self, input: &str) -> Result<String, ()> {
         match self {
-            &Encoding::Base64 =>
-                base64::decode_config(input, base64::MIME).map_err(|_| ())
-                    .and_then(|x| String::from_utf8(x).map_err(|_| ())),
+            &Encoding::Base64 => base64::decode_config(input, base64::MIME)
+                .map_err(|_| ())
+                .and_then(|x| String::from_utf8(x).map_err(|_| ())),
         }
     }
 }
@@ -72,7 +71,10 @@ fn get(url: &str) -> reqwest::RequestBuilder {
 
     builder.header(reqwest::header::UserAgent::new(USER_AGENT));
 
-    if let (Ok(username), password) = (var(LICENSE_HOUND_GITHUB_USERNAME), var(LICENSE_HOUND_GITHUB_PASSWORD).ok()) {
+    if let (Ok(username), password) = (
+        var(LICENSE_HOUND_GITHUB_USERNAME),
+        var(LICENSE_HOUND_GITHUB_PASSWORD).ok(),
+    ) {
         builder.basic_auth(username, password);
     }
 
@@ -85,7 +87,12 @@ fn try_to_print_error(resp: reqwest::Response) {
     }
 }
 
-fn license_file_from_license_api(owner: &str, repo: &str, package_name: &str, chosen_license: LicenseId) -> Option<(LicenseSource, String)> {
+fn license_file_from_license_api(
+    owner: &str,
+    repo: &str,
+    package_name: &str,
+    chosen_license: LicenseId,
+) -> Option<(LicenseSource, String)> {
     let license_url = format!("https://api.github.com/repos/{}/{}/license", owner, repo);
 
     let resp = try_opt!(get(&license_url).send().ok());
@@ -94,7 +101,10 @@ fn license_file_from_license_api(owner: &str, repo: &str, package_name: &str, ch
         eprintln!("ERROR Request to {} forbidden by GitHub", license_url);
         try_to_print_error(resp);
         eprintln!("HINT Try authenticating with your GitHub user:");
-        eprintln!("HINT     {}=... {}=... cargo license-hound", LICENSE_HOUND_GITHUB_USERNAME, LICENSE_HOUND_GITHUB_PASSWORD);
+        eprintln!(
+            "HINT     {}=... {}=... cargo license-hound",
+            LICENSE_HOUND_GITHUB_USERNAME, LICENSE_HOUND_GITHUB_PASSWORD
+        );
         return None;
     }
 
@@ -103,7 +113,11 @@ fn license_file_from_license_api(owner: &str, repo: &str, package_name: &str, ch
     }
 
     if !resp.status().is_success() {
-        eprintln!("ERROR Unexpected status code from GitHub API ({}): {}", license_url, resp.status());
+        eprintln!(
+            "ERROR Unexpected status code from GitHub API ({}): {}",
+            license_url,
+            resp.status()
+        );
         try_to_print_error(resp);
         return None;
     }
@@ -113,7 +127,7 @@ fn license_file_from_license_api(owner: &str, repo: &str, package_name: &str, ch
     if chosen_license.spdx_id() != license_description.license.spdx_id {
         eprintln!(
             "WARN GitHub and license-hound have identified different licenses \
-            for package {:?}: {:?} and {:?}, respectively",
+             for package {:?}: {:?} and {:?}, respectively",
             package_name,
             license_description.license.spdx_id,
             chosen_license.spdx_id(),
@@ -125,7 +139,12 @@ fn license_file_from_license_api(owner: &str, repo: &str, package_name: &str, ch
         LicenseSource::GitHubApi {
             url: license_description.download_url,
         },
-        try_opt!(license_description.encoding.decode(&license_description.content).ok()),
+        try_opt!(
+            license_description
+                .encoding
+                .decode(&license_description.content)
+                .ok()
+        ),
     ))
 }
 
@@ -136,7 +155,10 @@ fn get_license_file(url: &str) -> Option<String> {
         eprintln!("ERROR Request to {} forbidden by GitHub", url);
         try_to_print_error(resp);
         eprintln!("HINT Try authenticating with your GitHub user:");
-        eprintln!("HINT     {}=... {}=... cargo license-hound", LICENSE_HOUND_GITHUB_USERNAME, LICENSE_HOUND_GITHUB_PASSWORD);
+        eprintln!(
+            "HINT     {}=... {}=... cargo license-hound",
+            LICENSE_HOUND_GITHUB_USERNAME, LICENSE_HOUND_GITHUB_PASSWORD
+        );
         return None;
     }
 
@@ -151,21 +173,30 @@ fn get_license_file(url: &str) -> Option<String> {
     None
 }
 
-fn license_file_from_github_repo(owner: &str, repo: &str, _package_name: &str, chosen_license: LicenseId) -> Option<(LicenseSource, String)> {
+fn license_file_from_github_repo(
+    owner: &str,
+    repo: &str,
+    _package_name: &str,
+    chosen_license: LicenseId,
+) -> Option<(LicenseSource, String)> {
     for (a, b, c) in chosen_license.guess_filenames() {
-        let url = format!("https://raw.githubusercontent.com/{}/{}/master/{}{}{}", owner, repo, a, b, c);
+        let url = format!(
+            "https://raw.githubusercontent.com/{}/{}/master/{}{}{}",
+            owner, repo, a, b, c
+        );
         if let Some(license) = get_license_file(&url) {
-            return Some((
-                LicenseSource::GitHubRepo { url },
-                license,
-            ));
+            return Some((LicenseSource::GitHubRepo { url }, license));
         }
     }
 
     None
 }
 
-fn license_file_from_github_core(repo_url: Option<&str>, package_name: &str, chosen_license: LicenseId) -> Option<(LicenseSource, String)> {
+fn license_file_from_github_core(
+    repo_url: Option<&str>,
+    package_name: &str,
+    chosen_license: LicenseId,
+) -> Option<(LicenseSource, String)> {
     let repo_url = try_opt!(repo_url);
     let re_captures = try_opt!(URL_SCHEMA.captures(repo_url));
 
@@ -176,9 +207,17 @@ fn license_file_from_github_core(repo_url: Option<&str>, package_name: &str, cho
         .or_else(|| license_file_from_github_repo(owner, repo, package_name, chosen_license))
 }
 
-pub fn license_file_from_github(package: &cargo::core::Package, chosen_license: LicenseId) -> Option<(LicenseSource, String)> {
+pub fn license_file_from_github(
+    package: &cargo::core::Package,
+    chosen_license: LicenseId,
+) -> Option<(LicenseSource, String)> {
     license_file_from_github_core(
-        package.manifest().metadata().repository.as_ref().map(|x| &**x),
+        package
+            .manifest()
+            .metadata()
+            .repository
+            .as_ref()
+            .map(|x| &**x),
         package.name(),
         chosen_license,
     )
@@ -223,7 +262,10 @@ mod test {
     #[test]
     fn can_deserialize_response_example() {
         let x: LicenseDocument = serde_json::from_slice(EXAMPLE_RESPONSE).unwrap();
-        assert_eq!("https://raw.githubusercontent.com/benbalter/gman/master/LICENSE?lab=true", x.download_url);
+        assert_eq!(
+            "https://raw.githubusercontent.com/benbalter/gman/master/LICENSE?lab=true",
+            x.download_url
+        );
         assert_eq!(BASE64_MIT, x.content);
         assert_eq!(Encoding::Base64, x.encoding);
         assert_eq!("MIT", x.license.spdx_id);
@@ -231,7 +273,10 @@ mod test {
 
     #[test]
     fn can_decode_base64() {
-        assert_eq!(Ok(RAW_MIT), Encoding::Base64.decode(BASE64_MIT).as_ref().map(|x| &**x));
+        assert_eq!(
+            Ok(RAW_MIT),
+            Encoding::Base64.decode(BASE64_MIT).as_ref().map(|x| &**x)
+        );
     }
 
     #[test]

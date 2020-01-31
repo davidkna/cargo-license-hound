@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 base64 = "0.7"
-cargo = "0.22"
+cargo = "0.42"
 itertools = "0.7"
 lazy_static = "0.2"
 libflate = "0.1.12"
